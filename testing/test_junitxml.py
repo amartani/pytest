@@ -1822,3 +1822,52 @@ def test_logging_passing_tests_disabled_logs_output_for_failing_test_issue5430(
         assert junit_logging == "no"
         assert len(node.find_by_tag("system-err")) == 0
         assert len(node.find_by_tag("system-out")) == 0
+
+
+@pytest.mark.parametrize("verbose", ["", "-v", "-vv"])
+def test_color_leaking_2977(
+    pytester: Pytester, run_and_parse: RunAndParse, verbose: str
+) -> None:
+    """Ensure assertion output doesn't leak ASCII color codes. Regression test for #2977."""
+    pytester.makepyfile(
+        """
+        def test_foo():
+            assert [1,2,3] == [3,2,1]
+    """
+    )
+    # Pygments is an optional dependency, so only execute test if it is installed.
+    pytest.importorskip("pygments")
+
+    args = [verbose] if verbose else []
+    _, dom = run_and_parse(*args)
+
+    node = dom.get_first_by_tag("testsuite")
+    tnode = node.get_first_by_tag("testcase")
+    fnode = tnode.get_first_by_tag("failure")
+    assert "#x1B" not in fnode.toxml()
+
+
+def test_color_in_test_output_is_preserved(
+    pytester: Pytester, run_and_parse: RunAndParse
+) -> None:
+    """Check that color codes in the test output are preserved.
+
+    This is to ensure that the fix for #2977 is not too aggressive and
+    doesn't strip color codes that are part of the actual test output.
+    """
+    pytester.makepyfile(
+        r"""
+        def test_foo():
+            assert "\033[31mred\033[0m" == "\033[32mgreen\033[0m"
+    """
+    )
+    # Pygments is an optional dependency, so only execute test if it is installed.
+    pytest.importorskip("pygments")
+
+    _, dom = run_and_parse()
+
+    node = dom.get_first_by_tag("testsuite")
+    tnode = node.get_first_by_tag("testcase")
+    fnode = tnode.get_first_by_tag("failure")
+    assert "#x1B[31mred#x1B[0m" in fnode.toxml()
+    assert "#x1B[32mgreen#x1B[0m" in fnode.toxml()

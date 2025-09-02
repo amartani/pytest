@@ -1707,6 +1707,12 @@ class Function(PyobjMixin, nodes.Item):
         self,
         excinfo: ExceptionInfo[BaseException],
     ) -> str | TerminalRepr:
+        if excinfo.errisinstance(AssertionError):
+            if self.config.getoption("verbose", 0) > 1:
+                return self._repr_failure_py(excinfo, style="long")
+            # With the new assertion code enabled, we can get the failure explanation.
+            if hasattr(excinfo.value, "msg") and excinfo.value.msg:
+                return excinfo.value.msg
         style = self.config.getoption("tbstyle", "auto")
         if style == "auto":
             style = "long"

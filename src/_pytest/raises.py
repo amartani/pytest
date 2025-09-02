@@ -515,7 +515,9 @@ class AbstractRaises(ABC, Generic[BaseExcT_co]):
             from _pytest.assertion.util import _diff_text
             from _pytest.assertion.util import dummy_highlighter
 
-            diff = _diff_text(self.rawmatch, stringified_exception, dummy_highlighter)
+            diff = _diff_text(
+                self.rawmatch, stringified_exception, dummy_highlighter, verbose=0
+            )
             self._fail_reason = ("\n" if diff[0][0] == "-" else "") + "\n".join(diff)
             return False
 

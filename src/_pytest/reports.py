@@ -237,6 +237,27 @@ class BaseReport:
         return cls(**kwargs)
 
 
+class AssertionRepr(list):
+    """The representation of an assertion failure.
+
+    This is a specific :class:`TerminalRepr` that is created for assertion failures
+    and stored in the ``longrepr`` attribute of :class:`TestReport`.
+
+    It knows how to represented itself as colored or uncolored string, which is
+    used by the terminal reporter and the JUnit XML plugin respectively.
+    """
+
+    def __init__(self, lines: list[str], uncolored: str) -> None:
+        super().__init__(lines)
+        self.uncolored = uncolored
+
+    def __str__(self) -> str:
+        return "\n".join(self)
+
+    def toterminal(self, out: TerminalWriter) -> None:
+        out.line(str(self))
+
+
 def _report_unserialization_failure(
     type_name: str, report_class: type[BaseReport], reportdict
 ) -> NoReturn:

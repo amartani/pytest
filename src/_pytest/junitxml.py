@@ -25,6 +25,7 @@ from _pytest.config import Config
 from _pytest.config import filename_arg
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureRequest
+from _pytest.reports import AssertionRepr
 from _pytest.reports import TestReport
 from _pytest.stash import StashKey
 from _pytest.terminal import TerminalReporter
@@ -196,15 +197,21 @@ class _NodeReporter:
             self._add_simple("skipped", "xfail-marked test passes unexpectedly")
         else:
             assert report.longrepr is not None
-            reprcrash: ReprFileLocation | None = getattr(
-                report.longrepr, "reprcrash", None
-            )
-            if reprcrash is not None:
-                message = reprcrash.message
+            if isinstance(report.longrepr, AssertionRepr):
+                message = report.longrepr.uncolored
+                longrepr = report.longrepr.uncolored
             else:
-                message = str(report.longrepr)
+                reprcrash: ReprFileLocation | None = getattr(
+                    report.longrepr, "reprcrash", None
+                )
+                if reprcrash is not None:
+                    message = reprcrash.message
+                else:
+                    message = str(report.longrepr)
+                longrepr = str(report.longrepr)
+
             message = bin_xml_escape(message)
-            self._add_simple("failure", message, str(report.longrepr))
+            self._add_simple("failure", message, longrepr)
 
     def append_collect_error(self, report: TestReport) -> None:
         # msg = str(report.longrepr.reprtraceback.extraline)
